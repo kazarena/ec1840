@@ -241,6 +241,16 @@ public class IbmPCTest extends TestCase {
 				System.out.println("TEST 14: DISKETTE ATTACHMENT TEST - SKIPPED");
 			}
 		}, false));
+		cpList.add(new Checkpoint(0xFE4CC, new CheckpointCallback() {
+			public void checkpointPassed(Processor cpu) {
+				System.out.println("0xFE4CC");
+			}
+		}, false));
+		cpList.add(new Checkpoint(0xFE4EB, new CheckpointCallback() {
+			public void checkpointPassed(Processor cpu) {
+				System.out.println("SCREEN RESET");
+			}
+		}, false));
 		cpList.add(new Checkpoint(0xFE4F6, new CheckpointCallback() {
 			public void checkpointPassed(Processor cpu) {
 				System.out.println("TEST 15x: SETUP PRINTER AND RS232 BASE ADDRESSES IF DEVICE ATTACHED");

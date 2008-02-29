@@ -123,7 +123,7 @@ public class IbmPC implements PC {
 		pciBus = new PCIBus();
 
 		// BIOSes
-		sysBIOS = new SystemBIOS("resources/bios/bios.dmp");// bios81.bin");
+		sysBIOS = new SystemBIOS("resources/bios/bios81.bin");
 		// vgaBIOS = new VGABIOS("resources/bios/ega.rom");// vgabios.bin");
 
 		myParts = new HardwareComponent[] { processor, vmClock, physicalAddr, linearAddr, ioportHandler, irqController,
