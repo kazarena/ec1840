@@ -52,6 +52,9 @@ public class ProgrammablePeripheralInterface extends AbstractHardwareComponent i
 		HardwareComponent, UserInputDevice {
 	protected Logger logger = Logger.getLogger("PPI8255");
 
+	public static final byte KBD_CLEAR = (byte) 0x80;
+	public static final byte KBD_CLK_HIGH = (byte) 0x40;
+
 	public static final int PORT_A = 0x60;
 	/**
 	 * <pre>
@@ -107,13 +110,16 @@ public class ProgrammablePeripheralInterface extends AbstractHardwareComponent i
 	public static final int CMD_PORT = 0x63;
 
 	private byte[] portA = new byte[] { 0x30 | 0x0C, 0 };
-	private byte portB = 0;
+	private byte portB = KBD_CLEAR;
 	private byte[] portC = new byte[] { 0, 0 };
 
-	private byte groupAMode;
-	private byte groupBMode;
-
-	private byte mode;
+	private byte mode = (byte) 0x80;
+	private byte group_a_mode = 0;
+	private byte group_b_mode = 0;
+	private boolean portA_in = false;
+	private boolean portB_in = false;
+	private boolean portC_low_in = false;
+	private boolean portC_high_in = false;
 
 	private boolean ioportRegistered = false;
 
@@ -125,10 +131,6 @@ public class ProgrammablePeripheralInterface extends AbstractHardwareComponent i
 	public ProgrammablePeripheralInterface(int memorySize) {
 		memorySize /= 32 * 1024;
 
-		groupAMode = 0;
-		groupBMode = 0;
-		mode = (byte) 0x80;
-
 		queue = new KeyboardQueue();
 		// int portClower = memorySize & 0x0f;
 		// int portChigher = (memorySize >> 4) & 0x01;
@@ -137,6 +139,13 @@ public class ProgrammablePeripheralInterface extends AbstractHardwareComponent i
 	}
 
 	public int ioPortReadByte(int address) {
+		int result = privateReadByte(address);
+		// System.out.println("Read " + Integer.toHexString(result) + " from " +
+		// Integer.toHexString(address));
+		return result;
+	}
+
+	private int privateReadByte(int address) {
 		switch(address) {
 		case PORT_A:
 
@@ -146,9 +155,10 @@ public class ProgrammablePeripheralInterface extends AbstractHardwareComponent i
 			// else {
 			// return (pc->ppi_port_a[1]);
 			// }
-			if(0 != (portB & 0x80)) {
+			if(0 != (portB & KBD_CLEAR)) {
 				return portA[0];
 			} else {
+				portA[1] = queue.readData();
 				return portA[1];
 			}
 		case PORT_B:
@@ -161,13 +171,15 @@ public class ProgrammablePeripheralInterface extends AbstractHardwareComponent i
 			// else {
 			// return (pc->ppi_port_c[0]);
 			// }
-			if(0 != (portB & 0x04)) {
+			if(0 == (portB & 0x04)) {
 				return portC[0];
 			} else {
 				return portC[1];
 			}
+		case CMD_PORT:
+			return mode;
 		}
-		// logger.info("PPI called " + address);
+		// System.out.println("PPI called " + address);
 		return 0;
 	}
 
@@ -192,9 +204,47 @@ public class ProgrammablePeripheralInterface extends AbstractHardwareComponent i
 			portB = (byte) (data & 0xff);
 			pit.setGate(2, (data & 1) != 0);
 
-			if((data & 0x40) != 0) {
+			if((data & KBD_CLEAR) != 0) {
+				System.out.println("Received CLEAR_KBD");
+				queue.reset();
+				// queue.writeData((byte) 0xAA, (byte) 0);
+			}
+			if((data & KBD_CLK_HIGH) != 0) {
+				System.out.println("Received KBD_CLK_HIGH");
+				// queue.reset();
 				queue.writeData((byte) 0xAA, (byte) 0);
 			}
+			break;
+		case CMD_PORT:
+			byte val = (byte) data;
+			if((val & 0x80) != 0) {
+				// change mode
+				mode = val;
+
+				group_a_mode = (byte) ((val >> 5) & 0x03);
+				group_b_mode = (byte) ((val >> 2) & 0x01);
+				portA_in = (val & 0x10) != 0;
+				portB_in = (val & 0x02) != 0;
+				portC_low_in = (val & 0x01) != 0;
+				portC_high_in = (val & 0x08) != 0;
+
+				System.out.println("8255 mode change: A=" + (portA_in ? "in" : "out") + " B="
+						+ (portB_in ? "in" : "out") + " Cl=" + (portC_low_in ? "in" : "out") + " Ch="
+						+ (portC_high_in ? "in" : "out"));
+			} else {
+				System.out.println("set bits invoked");
+				// set bits in port C
+				byte bit;
+				// get the bit number
+				bit = (byte) ((val >> 1) & 0x07);
+				// set/unset the bit
+				if((val & 1) != 0) {
+					portC[0] = (byte) (portC[0] | (1 << bit));
+				} else {
+					portC[0] = (byte) (portC[0] & ~(1 << bit));
+				}
+			}
+
 		}
 	}
 
@@ -211,7 +261,7 @@ public class ProgrammablePeripheralInterface extends AbstractHardwareComponent i
 	}
 
 	public int[] ioPortsRequested() {
-		return new int[] { PORT_A, PORT_B, PORT_C };
+		return new int[] { PORT_A, PORT_B, PORT_C, CMD_PORT };
 	}
 
 	@Override
@@ -367,16 +417,15 @@ public class ProgrammablePeripheralInterface extends AbstractHardwareComponent i
 				readPosition = 0;
 			length--;
 			/* reading deasserts IRQ */
-			if(0 != aux)
+			if(0 != aux) {
 				ProgrammablePeripheralInterface.this.irqDevice.setIRQ(12, 0);
-			else
+			} else {
 				ProgrammablePeripheralInterface.this.irqDevice.setIRQ(1, 0);
+			}
 			return data;
 		}
 
 		public void writeData(byte data, byte aux) {
-			portA[1] = data;
-
 			if(length >= KBD_QUEUE_SIZE)
 				return;
 			this.aux[writePosition] = aux;
@@ -389,21 +438,22 @@ public class ProgrammablePeripheralInterface extends AbstractHardwareComponent i
 	}
 
 	private synchronized void updateIRQ() {
-		int irq1Level = 1;
+		int irq1Level = 0;
 		int irq12Level = 0;
 		// status = (byte) (status & ~(KBD_STAT_OBF | KBD_STAT_MOUSE_OBF));
-		// if(queue.length != 0) {
-		// status = (byte) (status | KBD_STAT_OBF);
-		// if(0 != queue.getAux()) {
-		// status = (byte) (status | KBD_STAT_MOUSE_OBF);
-		// if(0 != (mode & KBD_MODE_MOUSE_INT))
-		// irq12Level = 1;
-		// } else {
-		// if((0 != (mode & KBD_MODE_KBD_INT)) && (0 == (mode &
-		// KBD_MODE_DISABLE_KBD)))
-		// irq1Level = 1;
-		// }
-		// }
+		if(queue.length != 0) {
+			// status = (byte) (status | KBD_STAT_OBF);
+			if(0 != queue.getAux()) {
+				// status = (byte) (status | KBD_STAT_MOUSE_OBF);
+				// if(0 != (mode & KBD_MODE_MOUSE_INT))
+				// irq12Level = 1;
+			} else {
+				// != breaks at "many beeps"
+				if(0 != (portB & KBD_CLK_HIGH)) {
+					// irq1Level = 1;
+				}
+			}
+		}
 		irqDevice.setIRQ(1, irq1Level);
 		irqDevice.setIRQ(12, irq12Level);
 	}

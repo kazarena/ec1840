@@ -11,39 +11,29 @@ import org.jpc.emulator.processor.Processor;
 
 public class SingleInterruptController implements InterruptController {
 	private InterruptControllerElement master;
-	private InterruptControllerElement slave;
 
 	private Processor connectedCPU;
 
 	public SingleInterruptController() {
 		ioportRegistered = false;
 		master = new InterruptControllerElement(true);
-		slave = new InterruptControllerElement(false);
 	}
 
 	public void dumpState(DataOutput output) throws IOException {
 		master.dumpState(output);
-		slave.dumpState(output);
 	}
 
 	public void loadState(DataInput input) throws IOException {
 		ioportRegistered = false;
 		master.loadState(input);
-		slave.loadState(input);
 	}
 
 	private void updateIRQ() {
-		int slaveIRQ, masterIRQ;
-		/* first look at slave irq */
-		slaveIRQ = slave.getIRQ();
-		if(slaveIRQ >= 0) {
-			/* if irq request by slave pic, signal Master PIC */
-			master.setIRQ(2, 1);
-			master.setIRQ(2, 0);
-		}
+		int masterIRQ;
 		/* look at requested IRQ */
 		masterIRQ = master.getIRQ();
 		if(masterIRQ >= 0) {
+			System.out.println("Raise interrupt " + masterIRQ);
 			connectedCPU.raiseInterrupt();
 		}
 	}
@@ -54,39 +44,36 @@ public class SingleInterruptController implements InterruptController {
 			master.setIRQ(irqNumber & 7, level);
 			this.updateIRQ();
 			break;
-		case 1: // slave
-			slave.setIRQ(irqNumber & 7, level);
-			this.updateIRQ();
-			break;
 		default:
 		}
 	}
 
 	public int cpuGetInterrupt() {
-		int masterIRQ, slaveIRQ;
+		int masterIRQ;// , slaveIRQ;
 
 		/* read the irq from the PIC */
 
 		masterIRQ = master.getIRQ();
 		if(masterIRQ >= 0) {
 			master.intAck(masterIRQ);
-			if(masterIRQ == 2) {
-				slaveIRQ = slave.getIRQ();
-				if(slaveIRQ >= 0) {
-					slave.intAck(slaveIRQ);
-				} else {
-					/* spurious IRQ on slave controller */
-					slaveIRQ = 7;
-				}
-				this.updateIRQ();
-				return slave.irqBase + slaveIRQ;
-				// masterIRQ = slaveIRQ + 8;
-			} else {
-				this.updateIRQ();
-				return master.irqBase + masterIRQ;
-			}
+			// if(masterIRQ == 2) {
+			// slaveIRQ = slave.getIRQ();
+			// if(slaveIRQ >= 0) {
+			// slave.intAck(slaveIRQ);
+			// } else {
+			// /* spurious IRQ on slave controller */
+			// slaveIRQ = 7;
+			// }
+			// this.updateIRQ();
+			// return slave.irqBase + slaveIRQ;
+			// // masterIRQ = slaveIRQ + 8;
+			// } else {
+			this.updateIRQ();
+			return master.irqBase + masterIRQ;
+			// }
 		} else {
 			/* spurious IRQ on host controller */
+			System.out.println("spurious IRQ on host controller");
 			masterIRQ = 7;
 			this.updateIRQ();
 			return master.irqBase + masterIRQ;
@@ -95,8 +82,8 @@ public class SingleInterruptController implements InterruptController {
 
 	private int intAckRead() {
 		int ret = master.pollRead(0x00);
-		if(ret == 2)
-			ret = slave.pollRead(0x80) + 8;
+		// if(ret == 2)
+		// ret = slave.pollRead(0x80) + 8;
 		master.readRegisterSelect = true;
 
 		return ret;
@@ -207,8 +194,8 @@ public class SingleInterruptController implements InterruptController {
 			return elcr;
 		}
 
-		public boolean ioPortWrite(int address, byte data) // t/f updateIRQ
-		{
+		public boolean ioPortWrite(int address, byte data) {
+			System.out.println("ioPortWrite " + Integer.toHexString(address) + " " + Integer.toHexString(data));
 			int priority, command, irq;
 			address &= 1;
 			if(address == 0) {
@@ -239,9 +226,11 @@ public class SingleInterruptController implements InterruptController {
 						rotateOnAutoEOI = ((command >>> 2) != 0);
 						break;
 					case 1: // end of interrupt
+						System.out.println("end of interrupt received");
 					case 5:
 						priority = this.getPriority(interruptServiceRegister);
 						if(priority != 8) {
+							System.out.println("!=8");
 							irq = (priority + priorityAdd) & 7;
 							interruptServiceRegister = (byte) (interruptServiceRegister & ~(1 << irq));
 							if(command == 5)
@@ -267,6 +256,7 @@ public class SingleInterruptController implements InterruptController {
 					}
 				}
 			} else {
+				System.out.println("initState=" + initState);
 				switch(initState) {
 				case 0:
 					/* normal mode */
@@ -329,6 +319,7 @@ public class SingleInterruptController implements InterruptController {
 			int mask;
 			mask = (1 << irqNumber);
 			if(0 != (elcr & mask)) {
+				// System.out.println("level");
 				/* level triggered */
 				if(0 != level) {
 					interruptRequestRegister = (byte) (interruptRequestRegister | mask);
@@ -338,6 +329,7 @@ public class SingleInterruptController implements InterruptController {
 					lastInterruptRequestRegister = (byte) (lastInterruptRequestRegister & ~mask);
 				}
 			} else {
+				// System.out.println("edge");
 				/* edge triggered */
 				if(0 != level) {
 					if((lastInterruptRequestRegister & mask) == 0) {
@@ -362,11 +354,19 @@ public class SingleInterruptController implements InterruptController {
 		}
 
 		public int getIRQ() {
+			int result = getIRQ2();
+			// System.out.println(Integer.toBinaryString(interruptRequestRegister)
+			// + " getIRQ() = " + result);
+			return result;
+		}
+
+		public int getIRQ2() {
 			int mask, currentPriority, priority;
 
 			mask = interruptRequestRegister & ~interruptMaskRegister;
 			priority = this.getPriority(mask);
 			if(priority == 8) {
+				// System.out.println("getIRQ()==-1");
 				return -1;
 			}
 			/*
@@ -375,7 +375,7 @@ public class SingleInterruptController implements InterruptController {
 			 * for the priority computation.
 			 */
 			mask = interruptServiceRegister;
-			if(specialFullyNestedMode && this.isMaster()) {
+			if(specialFullyNestedMode) {// && this.isMaster()) {
 				mask &= ~(1 << 2);
 			}
 			currentPriority = this.getPriority(mask);
@@ -384,6 +384,7 @@ public class SingleInterruptController implements InterruptController {
 				/* higher priority found: an irq should be generated */
 				return (priority + priorityAdd) & 7;
 			} else {
+				// System.out.println("getIRQ()==-1");
 				return -1;
 			}
 		}
@@ -400,12 +401,12 @@ public class SingleInterruptController implements InterruptController {
 				interruptRequestRegister = (byte) (interruptRequestRegister & ~(1 << irqNumber));
 		}
 
-		private boolean isMaster() {
-			if(SingleInterruptController.this.master == this)
-				return true;
-			else
-				return false;
-		}
+		// private boolean isMaster() {
+		// if(SingleInterruptController.this.master == this)
+		// return true;
+		// else
+		// return false;
+		// }
 
 		private void reset() {
 			// zero all variables except elcrMask
@@ -431,22 +432,24 @@ public class SingleInterruptController implements InterruptController {
 		}
 
 		public String toString() {
-			if(isMaster()) {
-				return (SingleInterruptController.this).toString() + ": [Master Element]";
-			} else {
-				return (SingleInterruptController.this).toString() + ": [Slave  Element]";
-			}
+			// if(isMaster()) {
+			return (SingleInterruptController.this).toString() + ": [Master Element]";
+			// } else {
+			// return (SingleInterruptController.this).toString() + ": [Slave
+			// Element]";
+			// }
 		}
 	}
 
 	/* BEGIN IOPortCapable Defined Methods */
 	public int[] ioPortsRequested() {
 		int[] masterIOPorts = master.ioPortsRequested();
-		int[] slaveIOPorts = slave.ioPortsRequested();
+		// int[] slaveIOPorts = slave.ioPortsRequested();
 
-		int[] temp = new int[masterIOPorts.length + slaveIOPorts.length];
+		int[] temp = new int[masterIOPorts.length];// + slaveIOPorts.length];
 		System.arraycopy(masterIOPorts, 0, temp, 0, masterIOPorts.length);
-		System.arraycopy(slaveIOPorts, 0, temp, masterIOPorts.length, slaveIOPorts.length);
+		// System.arraycopy(slaveIOPorts, 0, temp, masterIOPorts.length,
+		// slaveIOPorts.length);
 
 		return temp;
 	}
@@ -456,13 +459,13 @@ public class SingleInterruptController implements InterruptController {
 		case 0x20:
 		case 0x21:
 			return 0xff & master.ioPortRead(address);
-		case 0xa0:
-		case 0xa1:
-			return 0xff & slave.ioPortRead(address);
+			// case 0xa0:
+			// case 0xa1:
+			// return 0xff & slave.ioPortRead(address);
 		case 0x4d0:
 			return 0xff & master.elcrRead();
-		case 0x4d1:
-			return 0xff & slave.elcrRead();
+			// case 0x4d1:
+			// return 0xff & slave.elcrRead();
 		default:
 		}
 		return 0;
@@ -480,20 +483,21 @@ public class SingleInterruptController implements InterruptController {
 		switch(address) {
 		case 0x20:
 		case 0x21:
-			if(master.ioPortWrite(address, (byte) data))
+			if(master.ioPortWrite(address, (byte) data)) {
 				this.updateIRQ();
+			}
 			break;
-		case 0xa0:
-		case 0xa1:
-			if(slave.ioPortWrite(address, (byte) data))
-				this.updateIRQ();
-			break;
+		// case 0xa0:
+		// case 0xa1:
+		// if(slave.ioPortWrite(address, (byte) data))
+		// this.updateIRQ();
+		// break;
 		case 0x4d0:
 			master.elcrWrite((byte) data);
 			break;
-		case 0x4d1:
-			slave.elcrWrite((byte) data);
-			break;
+		// case 0x4d1:
+		// slave.elcrWrite((byte) data);
+		// break;
 		default:
 		}
 	}
@@ -519,7 +523,7 @@ public class SingleInterruptController implements InterruptController {
 
 	public void reset() {
 		master.reset();
-		slave.reset();
+		// slave.reset();
 
 		ioportRegistered = false;
 		connectedCPU = null;
