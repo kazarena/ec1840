@@ -44,7 +44,7 @@ import org.jpc.support.Clock;
 import org.jpc.support.DriveSet;
 
 import com.binaryorder.embeddedpc.emulator.motherboard.SingleInterruptController;
-import com.binaryorder.embeddedpc.emulator.pci.peripheral.IbmPCVideoCard;
+import com.binaryorder.embeddedpc.emulator.pci.peripheral.CGAVideoCard;
 import com.binaryorder.embeddedpc.emulator.peripheral.ProgrammablePeripheralInterface;
 
 public class IbmPC implements PC {
@@ -66,7 +66,7 @@ public class IbmPC implements PC {
 	private PIIX3IDEInterface ideInterface;
 
 	private EthernetCard networkCard;
-	private IbmPCVideoCard graphicsCard;
+	private CGAVideoCard graphicsCard;
 	private SerialPort serialDevice0;
 	private Keyboard kbdDevice;
 	private PCSpeaker speaker;
@@ -110,7 +110,7 @@ public class IbmPC implements PC {
 		// Peripherals
 		ideInterface = new PIIX3IDEInterface();
 		networkCard = new EthernetCard();
-		graphicsCard = new IbmPCVideoCard();
+		graphicsCard = new CGAVideoCard();
 
 		serialDevice0 = new SerialPort(0);
 		kbdDevice = new Keyboard();
@@ -128,7 +128,7 @@ public class IbmPC implements PC {
 
 		myParts = new HardwareComponent[] { processor, vmClock, physicalAddr, linearAddr, ioportHandler, irqController,
 				primaryDMA, secondaryDMA, ppi, rtc, pit, gateA20, pciHostBridge, pciISABridge, pciBus, ideInterface,
-				drives, networkCard, graphicsCard, serialDevice0, kbdDevice, fdc, speaker, sysBIOS, /* vgaBIOS */};
+				drives, networkCard, serialDevice0, kbdDevice, fdc, speaker, sysBIOS, graphicsCard, /* vgaBIOS */};
 
 		if(!configure())
 			throw new IllegalStateException("PC Configuration failed");
