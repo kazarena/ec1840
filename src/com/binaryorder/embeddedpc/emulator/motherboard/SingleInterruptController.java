@@ -33,7 +33,7 @@ public class SingleInterruptController implements InterruptController {
 		/* look at requested IRQ */
 		masterIRQ = master.getIRQ();
 		if(masterIRQ >= 0) {
-			System.out.println("Raise interrupt " + masterIRQ);
+			// System.out.println("Raise interrupt " + masterIRQ);
 			connectedCPU.raiseInterrupt();
 		}
 	}
@@ -195,7 +195,8 @@ public class SingleInterruptController implements InterruptController {
 		}
 
 		public boolean ioPortWrite(int address, byte data) {
-			System.out.println("ioPortWrite " + Integer.toHexString(address) + " " + Integer.toHexString(data));
+			// System.out.println("ioPortWrite " + Integer.toHexString(address)
+			// + " " + Integer.toHexString(data));
 			int priority, command, irq;
 			address &= 1;
 			if(address == 0) {
@@ -226,11 +227,11 @@ public class SingleInterruptController implements InterruptController {
 						rotateOnAutoEOI = ((command >>> 2) != 0);
 						break;
 					case 1: // end of interrupt
-						System.out.println("end of interrupt received");
+						// System.out.println("end of interrupt received");
 					case 5:
 						priority = this.getPriority(interruptServiceRegister);
 						if(priority != 8) {
-							System.out.println("!=8");
+							// System.out.println("!=8");
 							irq = (priority + priorityAdd) & 7;
 							interruptServiceRegister = (byte) (interruptServiceRegister & ~(1 << irq));
 							if(command == 5)

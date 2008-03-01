@@ -109,7 +109,7 @@ public class ProgrammablePeripheralInterface extends AbstractHardwareComponent i
 	 */
 	public static final int CMD_PORT = 0x63;
 
-	private byte[] portA = new byte[] { 0x30 | 0x0C, 0 };
+	private byte[] portA = new byte[] { 0x20 | 0x0C, 0 };
 	private byte portB = KBD_CLEAR;
 	private byte[] portC = new byte[] { 0, 0 };
 

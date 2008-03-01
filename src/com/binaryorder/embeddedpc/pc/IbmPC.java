@@ -133,7 +133,7 @@ public class IbmPC implements PC {
 		if(!configure())
 			throw new IllegalStateException("PC Configuration failed");
 
-		// System.out.println(ioportHandler.map());
+		System.out.println(ioportHandler.map());
 	}
 
 	public void start() {

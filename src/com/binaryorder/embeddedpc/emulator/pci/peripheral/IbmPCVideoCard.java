@@ -673,9 +673,13 @@ public class IbmPCVideoCard extends AbstractPCIDevice implements VideoCard, IOPo
 	}
 
 	private final int vgaIOPortReadByte(int address) {
+		// System.out.println("Called to " + Integer.toHexString(address));
 		if((address >= 0x3b0 && address <= 0x3bf && ((miscellaneousOutputRegister & MOR_COLOR_EMULATION) != 0))
-				|| (address >= 0x3d0 && address <= 0x3df && ((miscellaneousOutputRegister & MOR_COLOR_EMULATION) == 0)))
+				|| (address >= 0x3d0 && address <= 0x3df && ((miscellaneousOutputRegister & MOR_COLOR_EMULATION) == 0))) {
+			// System.out.println("Returned ff");
 			return 0xff;
+
+		}
 
 		switch(address) {
 		case 0x3c0:
@@ -2446,7 +2450,7 @@ public class IbmPCVideoCard extends AbstractPCIDevice implements VideoCard, IOPo
 			ioportRegistered = true;
 		}
 		if((component instanceof PhysicalAddressSpace) && component.updated()) {
-			((PhysicalAddressSpace) component).mapMemoryRegion(lowIORegion, 0xb0000, 16384);
+			((PhysicalAddressSpace) component).mapMemoryRegion(lowIORegion, 0xb8000, 16384);
 			memoryRegistered = true;
 		}
 	}
