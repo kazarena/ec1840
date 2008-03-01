@@ -1521,28 +1521,6 @@ public class CGAVideoCard extends AbstractPCIDevice implements VideoCard, IOPort
 		fullUpdate |= temp;
 		int[] palette = lastPalette;
 
-		/* compute font data address (in plane 2) */
-		// int v = this.sequencerRegister[SR_INDEX_CHAR_MAP_SELECT];
-		//
-		// int offset = (((v >>> 4) & 1) | ((v << 1) & 6)) * 8192 * 4 + 2;
-		// if(offset != this.fontOffset[0]) {
-		// this.fontOffset[0] = offset;
-		// fullUpdate = true;
-		// }
-		//
-		// offset = (((v >>> 5) & 1) | ((v >>> 1) & 6)) * 8192 * 4 + 2;
-		// if(offset != this.fontOffset[1]) {
-		// this.fontOffset[1] = offset;
-		// fullUpdate = true;
-		// }
-		// if((this.planeUpdated & (1 << 2)) != 0) {
-		// /*
-		// * if the plane 2 was modified since the last display, it indicates
-		// * the font may have been modified
-		// */
-		// this.planeUpdated = 0;
-		// fullUpdate = true;
-		// }
 		temp = updateBasicParameters();
 		fullUpdate |= temp;
 
@@ -1581,25 +1559,23 @@ public class CGAVideoCard extends AbstractPCIDevice implements VideoCard, IOPort
 			fullUpdate = true;
 		}
 
-		// int curCursorOffset = ((crtRegister[CR_INDEX_CURSOR_LOC_HIGH] << 8) |
-		// crtRegister[CR_INDEX_CURSOR_LOC_LOW])
-		// - this.startAddress;
-		//
-		// if((curCursorOffset != this.cursorOffset) ||
-		// (crtRegister[CR_INDEX_CURSOR_START] != this.cursorStart)
-		// || (crtRegister[CR_INDEX_CURSOR_END] != this.cursorEnd)) {
-		// /*
-		// * if the cursor position changed, we updated the old and new chars
-		// */
-		// if((this.cursorOffset < CH_ATTR_SIZE) && (this.cursorOffset >= 0))
-		// this.lastChar[this.cursorOffset] = -1;
-		// if((curCursorOffset < CH_ATTR_SIZE) && (curCursorOffset >= 0))
-		// this.lastChar[curCursorOffset] = -1;
-		//
-		// this.cursorOffset = curCursorOffset;
-		// this.cursorStart = crtRegister[CR_INDEX_CURSOR_START];
-		// this.cursorEnd = crtRegister[CR_INDEX_CURSOR_END];
-		// }
+		int curCursorOffset = ((crtRegister[CR_INDEX_CURSOR_LOC_HIGH] << 8) | crtRegister[CR_INDEX_CURSOR_LOC_LOW])
+				- this.startAddress;
+
+		if((curCursorOffset != this.cursorOffset) || (crtRegister[CR_INDEX_CURSOR_START] != this.cursorStart)
+				|| (crtRegister[CR_INDEX_CURSOR_END] != this.cursorEnd)) {
+			/*
+			 * if the cursor position changed, we updated the old and new chars
+			 */
+			if((this.cursorOffset < CH_ATTR_SIZE) && (this.cursorOffset >= 0))
+				this.lastChar[this.cursorOffset] = -1;
+			if((curCursorOffset < CH_ATTR_SIZE) && (curCursorOffset >= 0))
+				this.lastChar[curCursorOffset] = -1;
+
+			this.cursorOffset = curCursorOffset;
+			this.cursorStart = crtRegister[CR_INDEX_CURSOR_START];
+			this.cursorEnd = crtRegister[CR_INDEX_CURSOR_END];
+		}
 
 		int cursorIndex = (this.startAddress + this.cursorOffset) * 4;
 		int lastCharOffset = 0;
@@ -1626,33 +1602,30 @@ public class CGAVideoCard extends AbstractPCIDevice implements VideoCard, IOPort
 					// character;
 					int backgroundColor = 0;// palette[characterAttribute >>>
 					// 4];
-					int foregroundColor = 0xff;// palette[characterAttribute &
+					int foregroundColor = 0xFFffffff; // 0xff;//
+														// palette[characterAttribute
+														// &
 					// 0xf];
 
 					drawGlyph8(device.getDisplayBuffer(), charY * charHeight * lastScreenWidth + charX * 8,
 							lastScreenWidth, glyphOffset, charHeight, foregroundColor, backgroundColor);
 					device.dirtyDisplayRegion(charX * 8, charY * charHeight, 8, charHeight);
 
-					// if((srcOffset == cursorIndex) &&
-					// ((crtRegister[CR_INDEX_CURSOR_START] & 0x20) == 0)) {
-					// int lineStart = crtRegister[CR_INDEX_CURSOR_START] &
-					// 0x1f;
-					// int lineLast = crtRegister[CR_INDEX_CURSOR_END] & 0x1f;
-					// /* XXX: check that */
-					// if(lineLast > charHeight - 1)
-					// lineLast = charHeight - 1;
-					//
-					// if((lineLast >= lineStart) && (lineStart < charHeight)) {
-					// int tempHeight = lineLast - lineStart + 1;
-					// drawCursorGlyph8(device.getDisplayBuffer(), (charY *
-					// charHeight + lineStart)
-					// * lastScreenWidth + charX * 8, lastScreenWidth,
-					// tempHeight, foregroundColor,
-					// backgroundColor);
-					// device.dirtyDisplayRegion(charX * 8, charY * charHeight +
-					// lineStart, 8, tempHeight);
-					// }
-					// }
+					if((srcOffset == cursorIndex) && ((crtRegister[CR_INDEX_CURSOR_START] & 0x20) == 0)) {
+						int lineStart = crtRegister[CR_INDEX_CURSOR_START] & 0x1f;
+						int lineLast = crtRegister[CR_INDEX_CURSOR_END] & 0x1f;
+						/* XXX: check that */
+						if(lineLast > charHeight - 1)
+							lineLast = charHeight - 1;
+
+						if((lineLast >= lineStart) && (lineStart < charHeight)) {
+							int tempHeight = lineLast - lineStart + 1;
+							drawCursorGlyph8(device.getDisplayBuffer(), (charY * charHeight + lineStart)
+									* lastScreenWidth + charX * 8, lastScreenWidth, tempHeight, foregroundColor,
+									backgroundColor);
+							device.dirtyDisplayRegion(charX * 8, charY * charHeight + lineStart, 8, tempHeight);
+						}
+					}
 				}
 				srcOffset += 2;
 				lastCharOffset++;
@@ -2241,20 +2214,19 @@ public class CGAVideoCard extends AbstractPCIDevice implements VideoCard, IOPort
 
 	private final void drawCursorGlyph8(int[] buffer, int startOffset, int scanSize, int charHeight,
 			int foregroundColor, int backgroundColor) {
-		return;
-		// int xorColor = backgroundColor ^ foregroundColor;
-		// int glyphOffset = 0;
-		// scanSize -= 8;
-		//
-		// do {
-		// int fontData = cursorGlyph[glyphOffset];
-		// for(int i = 7; i >= 0; i--) {
-		// int pixel = ((-((fontData >>> i) & 1)) & xorColor) ^ backgroundColor;
-		// buffer[startOffset++] = pixel;
-		// }
-		// glyphOffset += 4;
-		// startOffset += scanSize;
-		// } while(--charHeight != 0);
+		int xorColor = backgroundColor ^ foregroundColor;
+		int glyphOffset = 0;
+		scanSize -= 8;
+
+		do {
+			int fontData = cursorGlyph[glyphOffset];
+			for(int i = 7; i >= 0; i--) {
+				int pixel = ((-((fontData >>> i) & 1)) & xorColor) ^ backgroundColor;
+				buffer[startOffset++] = pixel;
+			}
+			glyphOffset += 4;
+			startOffset += scanSize;
+		} while(--charHeight != 0);
 	}
 
 	public boolean initialised() {

@@ -129,13 +129,12 @@ public class ProgrammablePeripheralInterface extends AbstractHardwareComponent i
 	private KeyboardQueue queue;
 
 	public ProgrammablePeripheralInterface(int memorySize) {
-		memorySize /= 32 * 1024;
+		memorySize /= 128 * 1024;
 
 		queue = new KeyboardQueue();
-		// int portClower = memorySize & 0x0f;
-		// int portChigher = (memorySize >> 4) & 0x01;
-		// portC = portChigher << 8 + portClower;
-		portC[0] = 3;
+
+		// mem size for the pc = (portC+1)*128 (e.g. 3 - 512 Kb)
+		portC[1] = memorySize >= 0 ? (byte) (memorySize - 1) : 0;
 	}
 
 	public int ioPortReadByte(int address) {

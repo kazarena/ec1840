@@ -33,7 +33,6 @@ import org.jpc.emulator.pci.peripheral.EthernetCard;
 import org.jpc.emulator.pci.peripheral.PIIX3IDEInterface;
 import org.jpc.emulator.pci.peripheral.VideoCard;
 import org.jpc.emulator.peripheral.FloppyController;
-import org.jpc.emulator.peripheral.Keyboard;
 import org.jpc.emulator.peripheral.PCSpeaker;
 import org.jpc.emulator.peripheral.SerialPort;
 import org.jpc.emulator.peripheral.UserInputDevice;
@@ -48,7 +47,8 @@ import com.binaryorder.embeddedpc.emulator.pci.peripheral.CGAVideoCard;
 import com.binaryorder.embeddedpc.emulator.peripheral.ProgrammablePeripheralInterface;
 
 public class IbmPC implements PC {
-	private static final int SYS_RAM_SIZE = 256 * 1024 * 1024;
+	private static final int SYS_REAL_RAM_SIZE = 128 * 1024;
+	private static final int SYS_RAM_SIZE = 1024 * 1024;
 
 	private Processor processor;
 	private IOPortHandler ioportHandler;
@@ -68,7 +68,7 @@ public class IbmPC implements PC {
 	private EthernetCard networkCard;
 	private CGAVideoCard graphicsCard;
 	private SerialPort serialDevice0;
-	private Keyboard kbdDevice;
+	// private Keyboard kbdDevice;
 	private PCSpeaker speaker;
 	private FloppyController fdc;
 
@@ -101,7 +101,7 @@ public class IbmPC implements PC {
 		primaryDMA = new DMAController(false, true);
 		secondaryDMA = new DMAController(false, false);
 
-		ppi = new ProgrammablePeripheralInterface(SYS_RAM_SIZE);
+		ppi = new ProgrammablePeripheralInterface(SYS_REAL_RAM_SIZE);
 
 		rtc = new RTC(0x70, 8, SYS_RAM_SIZE);
 		pit = new IntervalTimer(0x40, 0);
@@ -113,7 +113,7 @@ public class IbmPC implements PC {
 		graphicsCard = new CGAVideoCard();
 
 		serialDevice0 = new SerialPort(0);
-		kbdDevice = new Keyboard();
+		// kbdDevice = new Keyboard();
 		fdc = new FloppyController();
 		speaker = new PCSpeaker();
 
@@ -128,7 +128,7 @@ public class IbmPC implements PC {
 
 		myParts = new HardwareComponent[] { processor, vmClock, physicalAddr, linearAddr, ioportHandler, irqController,
 				primaryDMA, secondaryDMA, ppi, rtc, pit, gateA20, pciHostBridge, pciISABridge, pciBus, ideInterface,
-				drives, networkCard, serialDevice0, kbdDevice, fdc, speaker, sysBIOS, graphicsCard, /* vgaBIOS */};
+				drives, networkCard, serialDevice0, /* kbdDevice, */fdc, speaker, sysBIOS, graphicsCard, /* vgaBIOS */};
 
 		if(!configure())
 			throw new IllegalStateException("PC Configuration failed");
@@ -227,7 +227,7 @@ public class IbmPC implements PC {
 			saveComponent(zip, ideInterface);
 			saveComponent(zip, sysBIOS);
 			// saveComponent(zip, vgaBIOS);
-			saveComponent(zip, kbdDevice);
+			// saveComponent(zip, kbdDevice);
 			saveComponent(zip, fdc);
 			saveComponent(zip, serialDevice0);
 			saveComponent(zip, networkCard);
@@ -320,7 +320,7 @@ public class IbmPC implements PC {
 			loadComponent(zip, ideInterface);
 			loadComponent(zip, sysBIOS);
 			// loadComponent(zip, vgaBIOS);
-			loadComponent(zip, kbdDevice);
+			// loadComponent(zip, kbdDevice);
 			loadComponent(zip, fdc);
 			loadComponent(zip, serialDevice0);
 			loadComponent(zip, networkCard);
@@ -348,7 +348,7 @@ public class IbmPC implements PC {
 	}
 
 	public UserInputDevice getKeyboard() {
-		return kbdDevice;
+		return ppi;
 	}
 
 	public Processor getProcessor() {
