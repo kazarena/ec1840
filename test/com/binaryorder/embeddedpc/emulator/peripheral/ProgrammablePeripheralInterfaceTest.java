@@ -18,7 +18,7 @@ public class ProgrammablePeripheralInterfaceTest extends TestCase {
 
 	public void testPortA() {
 		ProgrammablePeripheralInterface ppi = new ProgrammablePeripheralInterface(512 * 1024);
-		assertEquals(0x3C, ppi.ioPortReadByte(ProgrammablePeripheralInterface.PORT_A));
+		assertEquals(0x2C, ppi.ioPortReadByte(ProgrammablePeripheralInterface.PORT_A));
 	}
 
 	public void testPortC() {

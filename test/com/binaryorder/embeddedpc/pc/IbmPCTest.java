@@ -32,8 +32,8 @@ public class IbmPCTest extends TestCase {
 		}));
 		cpList.add(new Checkpoint(0xFE0AF, new CheckpointCallback() {
 			public void checkpointPassed(Processor cpu) {
-				System.out.println("FAILED");
-				fail("Failed POST");
+				System.out.println("POST subroutine started.");
+				// fail("Failed POST");
 			}
 		}));
 		cpList.add(new Checkpoint(0xFE08E, new CheckpointCallback() {
@@ -80,9 +80,10 @@ public class IbmPCTest extends TestCase {
 				System.out.println("KBD_RESET called");
 			}
 		}));
-		cpList.add(new Checkpoint(0xFE5F4, new CheckpointCallback() {
+		cpList.add(new Checkpoint(0xFE5F2, new CheckpointCallback() {
 			public void checkpointPassed(Processor cpu) {
-				System.out.println("KBD_RESET finished");
+				System.out.println("KBD_RESET finished BL=" + Integer.toHexString(cpu.ebx) + " CX="
+						+ Integer.toHexString(cpu.ecx));
 			}
 		}));
 		// cpList.add(new Checkpoint(0xFE5D8, new CheckpointCallback() {
@@ -95,11 +96,21 @@ public class IbmPCTest extends TestCase {
 				System.out.println("TEST 06: 8259 INTERRUPT CONTROLLER TEST");
 			}
 		}, false));
-		// cpList.add(new Checkpoint(0xFE23A, new CheckpointCallback() {
-		// public void checkpointPassed(Processor cpu) {
-		// System.out.println("TEST 06: 8259 INTERRUPT CONTROLLER TEST 2");
-		// }
-		// }, false));
+		cpList.add(new Checkpoint(0xFE23A, new CheckpointCallback() {
+			public void checkpointPassed(Processor cpu) {
+				System.out.println("TEST 06: 8259 INTERRUPT CONTROLLER TEST 2");
+			}
+		}, false));
+		cpList.add(new Checkpoint(0xFE246, new CheckpointCallback() {
+			public void checkpointPassed(Processor cpu) {
+				System.out.println("TEST 06: 8259 INTERRUPT CONTROLLER TEST 3");
+			}
+		}, false));
+		cpList.add(new Checkpoint(0xFE252, new CheckpointCallback() {
+			public void checkpointPassed(Processor cpu) {
+				System.out.println("TEST 06: 8259 INTERRUPT CONTROLLER TEST 4");
+			}
+		}, false));
 		cpList.add(new Checkpoint(0xFE279, new CheckpointCallback() {
 			public void checkpointPassed(Processor cpu) {
 				System.out.println("TEST 07: 8253 TIMER CHECKOUT");
@@ -156,11 +167,11 @@ public class IbmPCTest extends TestCase {
 				System.out.println("TEST 11: ADDITIONAL READ/WRITE STORAGE TEST");
 			}
 		}, true));
-		cpList.add(new Checkpoint(0xFE3C4, new CheckpointCallback() {
-			public void checkpointPassed(Processor cpu) {
-				System.out.println("TEST 11 2");
-			}
-		}, true));
+		// cpList.add(new Checkpoint(0xFE3C4, new CheckpointCallback() {
+		// public void checkpointPassed(Processor cpu) {
+		// System.out.println("TEST 11 2");
+		// }
+		// }, true));
 		// cpList.add(new Checkpoint(0xFE640, new CheckpointCallback() {
 		// public void checkpointPassed(Processor cpu) {
 		// System.out.println("TEST 11 2");
@@ -171,16 +182,18 @@ public class IbmPCTest extends TestCase {
 		// System.out.println("SIDE BRANCH 1");
 		// }
 		// }, true));
-		cpList.add(new Checkpoint(0xFE698, new CheckpointCallback() {
-			public void checkpointPassed(Processor cpu) {
-				System.out.println("WRITE CHAR " + Integer.toHexString(cpu.eax & 0xff));
-			}
-		}, true));
-		cpList.add(new Checkpoint(0xFF066, new CheckpointCallback() {
-			public void checkpointPassed(Processor cpu) {
-				System.out.println("INT 10 called AX=" + Integer.toHexString(cpu.eax & 0xffff));
-			}
-		}, true));
+		// cpList.add(new Checkpoint(0xFE698, new CheckpointCallback() {
+		// public void checkpointPassed(Processor cpu) {
+		// System.out.println("WRITE CHAR " + Integer.toHexString(cpu.eax &
+		// 0xff));
+		// }
+		// }, true));
+		// cpList.add(new Checkpoint(0xFF066, new CheckpointCallback() {
+		// public void checkpointPassed(Processor cpu) {
+		// System.out.println("INT 10 called AX=" + Integer.toHexString(cpu.eax
+		// & 0xffff));
+		// }
+		// }, true));
 		// cpList.add(new Checkpoint(0xFF3D3, new CheckpointCallback() {
 		// public void checkpointPassed(Processor cpu) {
 		// System.out.println("INT 10 2 AX=" + Integer.toHexString(cpu.eax &
@@ -213,6 +226,36 @@ public class IbmPCTest extends TestCase {
 		cpList.add(new Checkpoint(0xFEC5A, new CheckpointCallback() {
 			public void checkpointPassed(Processor cpu) {
 				System.out.println("INT 13 called");
+			}
+		}, true));
+		cpList.add(new Checkpoint(0xFECBC, new CheckpointCallback() {
+			public void checkpointPassed(Processor cpu) {
+				System.out.println("DISK_RESET called");
+			}
+		}, true));
+		cpList.add(new Checkpoint(0xFEF0F, new CheckpointCallback() {
+			public void checkpointPassed(Processor cpu) {
+				System.out.println("CHK_STAT_2 called");
+			}
+		}, true));
+		cpList.add(new Checkpoint(0xFE72F, new CheckpointCallback() {
+			public void checkpointPassed(Processor cpu) {
+				System.out.println("NEC_OUTPUT called with ax=" + Integer.toHexString(cpu.eax));
+			}
+		}, true));
+		cpList.add(new Checkpoint(0xFEF21, new CheckpointCallback() {
+			public void checkpointPassed(Processor cpu) {
+				System.out.println("0xFEF21 called ax=" + Integer.toHexString(cpu.eax));
+			}
+		}, true));
+		cpList.add(new Checkpoint(0xFEF6B, new CheckpointCallback() {
+			public void checkpointPassed(Processor cpu) {
+				System.out.println("RESULTS called ax=" + Integer.toHexString(cpu.eax));
+			}
+		}, true));
+		cpList.add(new Checkpoint(0xFEF9A, new CheckpointCallback() {
+			public void checkpointPassed(Processor cpu) {
+				System.out.println("0xFEF9A called ax=" + Integer.toHexString(cpu.eax));
 			}
 		}, true));
 		cpList.add(new Checkpoint(0xFE988, new CheckpointCallback() {
@@ -250,6 +293,11 @@ public class IbmPCTest extends TestCase {
 				System.out.println("TEST 12: KEYBOARD TEST");
 			}
 		}, false));
+		cpList.add(new Checkpoint(0xFE437, new CheckpointCallback() {
+			public void checkpointPassed(Processor cpu) {
+				System.out.println("TEST 12: KEYBOARD TEST 2");
+			}
+		}, false));
 		cpList.add(new Checkpoint(0xFE47D, new CheckpointCallback() {
 			public void checkpointPassed(Processor cpu) {
 				System.out.println("TEST 13: CASSETTE DATA WRAP TEST - SKIPPED");
@@ -263,6 +311,21 @@ public class IbmPCTest extends TestCase {
 		cpList.add(new Checkpoint(0xFE492, new CheckpointCallback() {
 			public void checkpointPassed(Processor cpu) {
 				System.out.println("TEST 14: DISKETTE ATTACHMENT TEST - PERFORM");
+			}
+		}, false));
+		cpList.add(new Checkpoint(0xFE49b, new CheckpointCallback() {
+			public void checkpointPassed(Processor cpu) {
+				System.out.println("ax=" + Integer.toHexString(cpu.eax));
+			}
+		}, false));
+		cpList.add(new Checkpoint(0xFE4A3, new CheckpointCallback() {
+			public void checkpointPassed(Processor cpu) {
+				System.out.println("TEST 14 2");
+			}
+		}, false));
+		cpList.add(new Checkpoint(0xFEE69, new CheckpointCallback() {
+			public void checkpointPassed(Processor cpu) {
+				System.out.println("SEEK called.");
 			}
 		}, false));
 		cpList.add(new Checkpoint(0xFE57D, new CheckpointCallback() {
@@ -285,11 +348,16 @@ public class IbmPCTest extends TestCase {
 				System.out.println("TEST 15x: SETUP PRINTER AND RS232 BASE ADDRESSES IF DEVICE ATTACHED");
 			}
 		}, false));
-		// cpList.add(new Checkpoint(0xFF96D, new CheckpointCallback() {
-		// public void checkpointPassed(Processor cpu) {
-		// System.out.println("0xFF96D");
-		// }
-		// }, false));
+		cpList.add(new Checkpoint(0xFE55E, new CheckpointCallback() {
+			public void checkpointPassed(Processor cpu) {
+				System.out.println("TEST 16x: SET UP EQUIP FLAG TO INDICATE NUMBER OF PRINTERS AND RS232 CARDS");
+			}
+		}, false));
+		cpList.add(new Checkpoint(0xFF96D, new CheckpointCallback() {
+			public void checkpointPassed(Processor cpu) {
+				System.out.println("0xFF96D");
+			}
+		}, false));
 		// cpList.add(new Checkpoint(0xFE55C, new CheckpointCallback() {
 		// public void checkpointPassed(Processor cpu) {
 		// System.out.println("0xFE55C");
@@ -308,18 +376,18 @@ public class IbmPCTest extends TestCase {
 		cpList.add(new Checkpoint(0xFE4E2, new CheckpointCallback() {
 			public void checkpointPassed(Processor cpu) {
 				System.out.println("FAILED");
-				// fail("Failed at ERROR (RESUME=\"F1\" KEY)");
+				fail("Failed at ERROR (RESUME=\"F1\" KEY)");
 			}
 		}, false));
 		return cpList;
 	}
 
 	public void testBIOS81() throws IOException {
-		String[] args = new String[] { "-boot", "fda" };
+		String[] args = new String[] { "-fda", "mem:odin070.img", "-boot", "fda" };
 		boolean running = true;
 		PC pc = IbmPC.createPC(args, new VirtualClock());
 
-		CheckpointProcessor.setCheckpoints(createPOSTCheckpoints());
+		CheckpointProcessor.setCheckpoints(createPOSTCheckpoints(), true);
 
 		pc.start();
 		long execCount = 0;

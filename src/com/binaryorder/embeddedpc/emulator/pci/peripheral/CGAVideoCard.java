@@ -583,7 +583,7 @@ public class CGAVideoCard extends AbstractPCIDevice implements VideoCard, IOPort
 			crtRegisterIndex = data;
 			break;
 		case 0x3d8:
-			System.err.println("Called 0x3d8");
+			// System.err.println("Called 0x3d8");
 
 			byte newMode;
 
@@ -1591,7 +1591,7 @@ public class CGAVideoCard extends AbstractPCIDevice implements VideoCard, IOPort
 					int characterAttribute = charShort >>> 8;
 
 					if(character >= 128) {
-						character = 0x30;
+						character = 0x00;
 					}
 					// if(character != 0 && character != 0x20) {
 					// System.out.println("char = " +
@@ -1603,8 +1603,8 @@ public class CGAVideoCard extends AbstractPCIDevice implements VideoCard, IOPort
 					int backgroundColor = 0;// palette[characterAttribute >>>
 					// 4];
 					int foregroundColor = 0xFFffffff; // 0xff;//
-														// palette[characterAttribute
-														// &
+					// palette[characterAttribute
+					// &
 					// 0xf];
 
 					drawGlyph8(device.getDisplayBuffer(), charY * charHeight * lastScreenWidth + charX * 8,

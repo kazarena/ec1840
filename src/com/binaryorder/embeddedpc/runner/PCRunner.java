@@ -22,7 +22,7 @@ public class PCRunner {
 
 		PC pc = IbmPC.createPC(args, new VirtualClock());
 
-		CheckpointProcessor.setCheckpoints(IbmPCTest.createPOSTCheckpoints());
+		CheckpointProcessor.setCheckpoints(IbmPCTest.createPOSTCheckpoints(), false);
 
 		PCMonitorFrame frame = PCMonitorFrame.createMonitor("JPC Monitor", pc, args);
 

@@ -47,7 +47,7 @@ import com.binaryorder.embeddedpc.emulator.pci.peripheral.CGAVideoCard;
 import com.binaryorder.embeddedpc.emulator.peripheral.ProgrammablePeripheralInterface;
 
 public class IbmPC implements PC {
-	private static final int SYS_REAL_RAM_SIZE = 128 * 1024;
+	private static final int SYS_REAL_RAM_SIZE = 640 * 1024;
 	private static final int SYS_RAM_SIZE = 1024 * 1024;
 
 	private Processor processor;

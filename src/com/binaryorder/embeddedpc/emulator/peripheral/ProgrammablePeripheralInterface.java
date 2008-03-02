@@ -109,7 +109,9 @@ public class ProgrammablePeripheralInterface extends AbstractHardwareComponent i
 	 */
 	public static final int CMD_PORT = 0x63;
 
-	private byte[] portA = new byte[] { 0x20 | 0x0C, 0 };
+	private byte[] portA = new byte[] { 0x20 // 80*25 color (mono mode)
+			| 0x0C | 0x01 // diskette drive
+			, 0 };
 	private byte portB = KBD_CLEAR;
 	private byte[] portC = new byte[] { 0, 0 };
 
@@ -135,6 +137,7 @@ public class ProgrammablePeripheralInterface extends AbstractHardwareComponent i
 
 		// mem size for the pc = (portC+1)*128 (e.g. 3 - 512 Kb)
 		portC[1] = memorySize >= 0 ? (byte) (memorySize - 1) : 0;
+		// portC[1] |= (byte) 0x40;
 	}
 
 	public int ioPortReadByte(int address) {
@@ -197,9 +200,12 @@ public class ProgrammablePeripheralInterface extends AbstractHardwareComponent i
 	public void ioPortWriteByte(int address, int data) {
 		switch(address) {
 		case PORT_B:
+			System.out.println("ppi_port_b = " + Integer.toHexString(data));
 			// pc->ppi_port_b = val;
 			//
 			// e8253_set_gate (&pc->pit, 2, val & 0x01);
+			byte oldPortB = portB;
+
 			portB = (byte) (data & 0xff);
 			pit.setGate(2, (data & 1) != 0);
 
@@ -211,7 +217,9 @@ public class ProgrammablePeripheralInterface extends AbstractHardwareComponent i
 			if((data & KBD_CLK_HIGH) != 0) {
 				System.out.println("Received KBD_CLK_HIGH");
 				// queue.reset();
-				queue.writeData((byte) 0xAA, (byte) 0);
+				if((oldPortB & KBD_CLK_HIGH) == 0) {
+					queue.writeData((byte) 0xAA, (byte) 0);
+				}
 			}
 			break;
 		case CMD_PORT:
@@ -432,7 +440,9 @@ public class ProgrammablePeripheralInterface extends AbstractHardwareComponent i
 			if((++writePosition) == KBD_QUEUE_SIZE)
 				writePosition = 0;
 			length++;
-			ProgrammablePeripheralInterface.this.updateIRQ();
+			if(!(data == 0xAA && aux == 0)) {
+				ProgrammablePeripheralInterface.this.updateIRQ();
+			}
 		}
 	}
 
@@ -449,9 +459,12 @@ public class ProgrammablePeripheralInterface extends AbstractHardwareComponent i
 			} else {
 				// != breaks at "many beeps"
 				if(0 != (portB & KBD_CLK_HIGH)) {
-					// irq1Level = 1;
+					irq1Level = 1;
 				}
 			}
+		}
+		if(irq1Level != 0) {
+			// System.out.println("Send irq1Level from PPI");
 		}
 		irqDevice.setIRQ(1, irq1Level);
 		irqDevice.setIRQ(12, irq12Level);
