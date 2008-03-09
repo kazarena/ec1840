@@ -82,8 +82,7 @@ public class IbmPCTest extends TestCase {
 		}));
 		cpList.add(new Checkpoint(0xFE5F2, new CheckpointCallback() {
 			public void checkpointPassed(Processor cpu) {
-				System.out.println("KBD_RESET finished BL=" + Integer.toHexString(cpu.ebx) + " CX="
-						+ Integer.toHexString(cpu.ecx));
+				System.out.println("KBD_RESET finished BL=" + Integer.toHexString(cpu.ebx) + " CX=" + Integer.toHexString(cpu.ecx));
 			}
 		}));
 		// cpList.add(new Checkpoint(0xFE5D8, new CheckpointCallback() {
@@ -396,8 +395,7 @@ public class IbmPCTest extends TestCase {
 				execCount += pc.execute();
 			}
 		} catch(Exception e) {
-			System.err.println("Caught exception @ Address:0x"
-					+ Integer.toHexString(pc.getProcessor().getInstructionPointer()));
+			System.err.println("Caught exception @ Address:0x" + Integer.toHexString(pc.getProcessor().getInstructionPointer()));
 			System.err.println(e);
 			e.printStackTrace();
 		} finally {

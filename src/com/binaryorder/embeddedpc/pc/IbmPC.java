@@ -38,6 +38,7 @@ import org.jpc.emulator.peripheral.SerialPort;
 import org.jpc.emulator.peripheral.UserInputDevice;
 import org.jpc.emulator.processor.ModeSwitchException;
 import org.jpc.emulator.processor.Processor;
+import org.jpc.j2se.KeyMapping;
 import org.jpc.support.BlockDevice;
 import org.jpc.support.Clock;
 import org.jpc.support.DriveSet;
@@ -47,7 +48,7 @@ import com.binaryorder.embeddedpc.emulator.pci.peripheral.CGAVideoCard;
 import com.binaryorder.embeddedpc.emulator.peripheral.ProgrammablePeripheralInterface;
 
 public class IbmPC implements PC {
-	private static final int SYS_REAL_RAM_SIZE = 640 * 1024;
+	private static final int SYS_REAL_RAM_SIZE = 512 * 1024;
 	private static final int SYS_RAM_SIZE = 1024 * 1024;
 
 	private Processor processor;
@@ -68,7 +69,6 @@ public class IbmPC implements PC {
 	private EthernetCard networkCard;
 	private CGAVideoCard graphicsCard;
 	private SerialPort serialDevice0;
-	// private Keyboard kbdDevice;
 	private PCSpeaker speaker;
 	private FloppyController fdc;
 
@@ -77,10 +77,11 @@ public class IbmPC implements PC {
 	private Clock vmClock;
 	private DriveSet drives;
 
-	// private VGABIOS vgaBIOS;
 	private SystemBIOS sysBIOS;
 
 	private HardwareComponent[] myParts;
+
+	private KeyMapping keyMapping;;
 
 	public IbmPC(Clock clock, DriveSet drives) throws IOException {
 		this.drives = drives;
@@ -113,8 +114,7 @@ public class IbmPC implements PC {
 		graphicsCard = new CGAVideoCard();
 
 		serialDevice0 = new SerialPort(0);
-		// kbdDevice = new Keyboard();
-		fdc = new FloppyController();
+		fdc = new FloppyController(FloppyController.FloppyDrive.DRIVE_120);
 		speaker = new PCSpeaker();
 
 		// PCI Stuff
@@ -122,13 +122,13 @@ public class IbmPC implements PC {
 		pciISABridge = new PCIISABridge();
 		pciBus = new PCIBus();
 
+		keyMapping = new EC1840KeyMapping();
+
 		// BIOSes
 		sysBIOS = new SystemBIOS("resources/bios/bios81.bin");
-		// vgaBIOS = new VGABIOS("resources/bios/ega.rom");// vgabios.bin");
 
-		myParts = new HardwareComponent[] { processor, vmClock, physicalAddr, linearAddr, ioportHandler, irqController,
-				primaryDMA, secondaryDMA, ppi, rtc, pit, gateA20, pciHostBridge, pciISABridge, pciBus, ideInterface,
-				drives, networkCard, serialDevice0, /* kbdDevice, */fdc, speaker, sysBIOS, graphicsCard, /* vgaBIOS */};
+		myParts = new HardwareComponent[] { processor, vmClock, physicalAddr, linearAddr, ioportHandler, irqController, primaryDMA, secondaryDMA, ppi, rtc, pit, gateA20,
+				pciHostBridge, pciISABridge, pciBus, ideInterface, drives, networkCard, serialDevice0, fdc, speaker, sysBIOS, graphicsCard };
 
 		if(!configure())
 			throw new IllegalStateException("PC Configuration failed");
@@ -189,8 +189,7 @@ public class IbmPC implements PC {
 
 		if(count == 100) {
 			for(int i = 0; i < myParts.length; i++)
-				Logger.getLogger("PC").info(
-						"Part " + i + " (" + myParts[i].getClass() + ") " + myParts[i].initialised());
+				Logger.getLogger("PC").info("Part " + i + " (" + myParts[i].getClass() + ") " + myParts[i].initialised());
 			return false;
 		}
 
@@ -416,5 +415,9 @@ public class IbmPC implements PC {
 		} catch(ModeSwitchException e) {
 			return 1;
 		}
+	}
+
+	public KeyMapping getKeyMapping() {
+		return keyMapping;
 	}
 }

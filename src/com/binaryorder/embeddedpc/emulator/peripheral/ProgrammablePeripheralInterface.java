@@ -48,8 +48,7 @@ import org.jpc.emulator.peripheral.UserInputDevice;
  * 
  * </pre>
  */
-public class ProgrammablePeripheralInterface extends AbstractHardwareComponent implements IOPortCapable,
-		HardwareComponent, UserInputDevice {
+public class ProgrammablePeripheralInterface extends AbstractHardwareComponent implements IOPortCapable, HardwareComponent, UserInputDevice {
 	protected Logger logger = Logger.getLogger("PPI8255");
 
 	public static final byte KBD_CLEAR = (byte) 0x80;
@@ -142,8 +141,9 @@ public class ProgrammablePeripheralInterface extends AbstractHardwareComponent i
 
 	public int ioPortReadByte(int address) {
 		int result = privateReadByte(address);
-		// System.out.println("Read " + Integer.toHexString(result) + " from " +
-		// Integer.toHexString(address));
+		// if(address == 0x61) {
+		// System.out.println("Read " + Integer.toHexString(result) + " from " + Integer.toHexString(address));
+		// }
 		return result;
 	}
 
@@ -158,9 +158,11 @@ public class ProgrammablePeripheralInterface extends AbstractHardwareComponent i
 			// return (pc->ppi_port_a[1]);
 			// }
 			if(0 != (portB & KBD_CLEAR)) {
+				// System.out.println("Read portA[0] = " + Integer.toHexString(portA[0]));
 				return portA[0];
 			} else {
 				portA[1] = queue.readData();
+				// System.out.println("Read portA[1] = " + Integer.toHexString(portA[1]));
 				return portA[1];
 			}
 		case PORT_B:
@@ -200,7 +202,7 @@ public class ProgrammablePeripheralInterface extends AbstractHardwareComponent i
 	public void ioPortWriteByte(int address, int data) {
 		switch(address) {
 		case PORT_B:
-			System.out.println("ppi_port_b = " + Integer.toHexString(data));
+			// System.out.println("ppi_port_b = " + Integer.toHexString(data));
 			// pc->ppi_port_b = val;
 			//
 			// e8253_set_gate (&pc->pit, 2, val & 0x01);
@@ -210,15 +212,15 @@ public class ProgrammablePeripheralInterface extends AbstractHardwareComponent i
 			pit.setGate(2, (data & 1) != 0);
 
 			if((data & KBD_CLEAR) != 0) {
-				System.out.println("Received CLEAR_KBD");
+				// System.out.println("Received CLEAR_KBD");
 				queue.reset();
 				// queue.writeData((byte) 0xAA, (byte) 0);
 			}
 			if((data & KBD_CLK_HIGH) != 0) {
-				System.out.println("Received KBD_CLK_HIGH");
+				// System.out.println("Received KBD_CLK_HIGH");
 				// queue.reset();
 				if((oldPortB & KBD_CLK_HIGH) == 0) {
-					queue.writeData((byte) 0xAA, (byte) 0);
+					queue.writeData((byte) 0xAA);
 				}
 			}
 			break;
@@ -235,9 +237,11 @@ public class ProgrammablePeripheralInterface extends AbstractHardwareComponent i
 				portC_low_in = (val & 0x01) != 0;
 				portC_high_in = (val & 0x08) != 0;
 
-				System.out.println("8255 mode change: A=" + (portA_in ? "in" : "out") + " B="
-						+ (portB_in ? "in" : "out") + " Cl=" + (portC_low_in ? "in" : "out") + " Ch="
-						+ (portC_high_in ? "in" : "out"));
+				// System.out.println("8255 mode change: A=" + (portA_in ? "in"
+				// : "out") + " B="
+				// + (portB_in ? "in" : "out") + " Cl=" + (portC_low_in ? "in" :
+				// "out") + " Ch="
+				// + (portC_high_in ? "in" : "out"));
 			} else {
 				System.out.println("set bits invoked");
 				// set bits in port C
@@ -345,7 +349,7 @@ public class ProgrammablePeripheralInterface extends AbstractHardwareComponent i
 	void putKeyboardEvent(byte keycode) {
 		// pc->ppi_port_a[1] = pc->key_buf[pc->key_i];
 		// e8259_set_irq1 (&pc->pic, 1);
-		queue.writeData(keycode, (byte) 0);
+		queue.writeData(keycode);
 	}
 
 	public void keyReleased(byte scancode) {
@@ -360,14 +364,12 @@ public class ProgrammablePeripheralInterface extends AbstractHardwareComponent i
 	private static final int KBD_QUEUE_SIZE = 256;
 
 	private class KeyboardQueue {
-		private byte[] aux;
 		private byte[] data;
 		private int readPosition;
 		private int writePosition;
 		private int length;
 
 		public KeyboardQueue() {
-			aux = new byte[KBD_QUEUE_SIZE];
 			data = new byte[KBD_QUEUE_SIZE];
 			readPosition = 0;
 			writePosition = 0;
@@ -375,8 +377,6 @@ public class ProgrammablePeripheralInterface extends AbstractHardwareComponent i
 		}
 
 		public void dumpState(DataOutput output) throws IOException {
-			output.writeInt(aux.length);
-			output.write(aux);
 			output.writeInt(data.length);
 			output.write(data);
 			output.writeInt(readPosition);
@@ -386,8 +386,6 @@ public class ProgrammablePeripheralInterface extends AbstractHardwareComponent i
 
 		public void loadState(DataInput input) throws IOException {
 			int len = input.readInt();
-			aux = new byte[len];
-			input.readFully(aux, 0, len);
 			len = input.readInt();
 			data = new byte[len];
 			input.readFully(data, 0, len);
@@ -402,15 +400,10 @@ public class ProgrammablePeripheralInterface extends AbstractHardwareComponent i
 			length = 0;
 		}
 
-		public byte getAux() {
-			return aux[readPosition];
-		}
-
 		public byte readData() {
 			if(length == 0) {
 				/*
-				 * NOTE: if no data left, we return the last keyboard one
-				 * (needed for EMM386)
+				 * NOTE: if no data left, we return the last keyboard one (needed for EMM386)
 				 */
 				/* XXX: need a timer to do things correctly */
 				int index = readPosition - 1;
@@ -418,55 +411,39 @@ public class ProgrammablePeripheralInterface extends AbstractHardwareComponent i
 					index = KBD_QUEUE_SIZE - 1;
 				return data[index];
 			}
-			byte aux = this.aux[readPosition];
 			byte data = this.data[readPosition];
 			if((++readPosition) == KBD_QUEUE_SIZE)
 				readPosition = 0;
 			length--;
-			/* reading deasserts IRQ */
-			if(0 != aux) {
-				ProgrammablePeripheralInterface.this.irqDevice.setIRQ(12, 0);
-			} else {
-				ProgrammablePeripheralInterface.this.irqDevice.setIRQ(1, 0);
-			}
+
+			ProgrammablePeripheralInterface.this.irqDevice.setIRQ(1, 0);
+
+			// System.out.println("Reading " + Integer.toHexString(data) + " from port 60h");
 			return data;
 		}
 
-		public void writeData(byte data, byte aux) {
+		public void writeData(byte data) {
 			if(length >= KBD_QUEUE_SIZE)
 				return;
-			this.aux[writePosition] = aux;
 			this.data[writePosition] = data;
 			if((++writePosition) == KBD_QUEUE_SIZE)
 				writePosition = 0;
 			length++;
-			if(!(data == 0xAA && aux == 0)) {
-				ProgrammablePeripheralInterface.this.updateIRQ();
-			}
+			// if(data != 0xAA) {
+			ProgrammablePeripheralInterface.this.updateIRQ();
+			// }
 		}
 	}
 
 	private synchronized void updateIRQ() {
 		int irq1Level = 0;
-		int irq12Level = 0;
 		// status = (byte) (status & ~(KBD_STAT_OBF | KBD_STAT_MOUSE_OBF));
 		if(queue.length != 0) {
 			// status = (byte) (status | KBD_STAT_OBF);
-			if(0 != queue.getAux()) {
-				// status = (byte) (status | KBD_STAT_MOUSE_OBF);
-				// if(0 != (mode & KBD_MODE_MOUSE_INT))
-				// irq12Level = 1;
-			} else {
-				// != breaks at "many beeps"
-				if(0 != (portB & KBD_CLK_HIGH)) {
-					irq1Level = 1;
-				}
+			if(0 != (portB & KBD_CLK_HIGH)) {
+				irq1Level = 1;
 			}
 		}
-		if(irq1Level != 0) {
-			// System.out.println("Send irq1Level from PPI");
-		}
 		irqDevice.setIRQ(1, irq1Level);
-		irqDevice.setIRQ(12, irq12Level);
 	}
 }

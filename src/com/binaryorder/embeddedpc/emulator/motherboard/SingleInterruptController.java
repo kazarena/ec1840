@@ -257,7 +257,7 @@ public class SingleInterruptController implements InterruptController {
 					}
 				}
 			} else {
-				System.out.println("initState=" + initState);
+				// System.out.println("initState=" + initState);
 				switch(initState) {
 				case 0:
 					/* normal mode */
